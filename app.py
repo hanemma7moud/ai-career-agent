@@ -2,14 +2,12 @@ import streamlit as st
 import os
 from openai import AzureOpenAI
 
-from azure.identity import DefaultAzureCredential
 from azure.ai.projects import AIProjectClient
 
 endpoint = "https://csc300-cv.services.ai.azure.com/api/projects/CVAssistant"
 
 project_client = AIProjectClient(
-    endpoint=endpoint,
-    credential=DefaultAzureCredential(),
+    endpoint=endpoint
 )
 
 my_agent = "AI-Career-Agent"
