@@ -17,8 +17,12 @@ AZURE_ENDPOINT = os.getenv("AZURE_ENDPOINT", "https://csc300-cv.services.ai.azur
 AZURE_AGENT_NAME = os.getenv("AZURE_AGENT_NAME", "AI-Career-Agent")
 AZURE_AGENT_VERSION = os.getenv("AZURE_AGENT_VERSION", "5")
 
-# Bypasses restricted University tenant permission blocks (401 errors)
-AZURE_API_KEY = os.getenv("AZURE_API_KEY", "")
+# If the student configured an API key, we override the default Entra ID behavior
+if AZURE_API_KEY:
+    openai_client = client.get_openai_client(api_key=AZURE_API_KEY)
+else:
+    openai_client = client.get_openai_client()
+
 
 st.title("💼 Dr. Hanem Ellethy - AI Career Agent")
 st.subheader("Interactive Professional Portfolio & CV Assistant")
