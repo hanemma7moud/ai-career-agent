@@ -28,6 +28,7 @@ def get_project_client():
     credential = DefaultAzureCredential()
 
     return AIProjectClient(
+        endpoint=os.getenv("AZURE_ENDPOINT"),   
         subscription_id=SUBSCRIPTION_ID,
         resource_group_name=RESOURCE_GROUP,
         project_name=PROJECT_NAME,
