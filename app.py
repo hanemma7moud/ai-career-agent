@@ -8,7 +8,7 @@ client = AzureOpenAI(
 )
 
 response = client.chat.completions.create(
-    model="gpt-4.1",   # your deployment name
+    model="AI-Career-Agent:5",   # your deployment name
     messages=[
         {"role": "system", "content": "You are Hanem's AI career assistant."},
         {"role": "user", "content": "Tell me about your skills"}
