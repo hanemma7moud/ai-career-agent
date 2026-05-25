@@ -14,7 +14,7 @@ client = AzureOpenAI(
     azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT")
 )
 
-DEPLOYMENT_NAME = "gpt-4.1"  # change if needed
+DEPLOYMENT_NAME = "AI-Career-Agent"  # change if needed
 
 # Chat history
 if "messages" not in st.session_state:
