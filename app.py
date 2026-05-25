@@ -3,6 +3,7 @@ import streamlit as st
 from azure.identity import DefaultAzureCredential
 from azure.ai.projects import AIProjectClient
 
+
 st.set_page_config(page_title="AI Career Agent", page_icon="🤖", layout="centered")
 
 st.title("💼 Chat with my AI Career Agent")
@@ -26,7 +27,7 @@ project_client = get_project_client()
 
 # 3. Maintain session state thread ID natively via nested Foundry namespace
 if "thread_id" not in st.session_state:
-    thread = project_client.agents.threads.create()
+    thread = project_client.agents.create_thread()
     st.session_state.thread_id = thread.id
 
 if "messages" not in st.session_state:
@@ -44,7 +45,7 @@ if user_query := st.chat_input("Ask something about my machine learning backgrou
     st.session_state.messages.append({"role": "user", "content": user_query})
 
     # Append user input message into the live thread context
-    project_client.agents.messages.create(
+    project_client.agents.create_message(
         thread_id=st.session_state.thread_id,
         role="user",
         content=user_query
@@ -52,15 +53,22 @@ if user_query := st.chat_input("Ask something about my machine learning backgrou
 
     # Execute backend agent inference processing using the nested runs namespace
     with st.spinner("Agent is analyzing your request..."):
-        run = project_client.agents.runs.create_and_process(
+        run = project_client.agents.create_and_process_run(
             thread_id=st.session_state.thread_id,
             agent_id=AGENT_ID
         )
 
     # Retrieve answer payloads once execution successfully completes
     if run.status == "completed":
-        messages = project_client.agents.messages.list(thread_id=st.session_state.thread_id)
+        messages = project_client.agents.list_messages(thread_id=st.session_state.thread_id)
         
+        # Get latest assistant message safely
+        ai_response = None
+        for msg in reversed(messages.data):
+            if msg.role == "assistant":
+                ai_response = msg.content[0].text.value
+                break
+
         # Pull the latest text block value safely from the message payload data array
         ai_response = messages.data[0].content[0].text.value
         
