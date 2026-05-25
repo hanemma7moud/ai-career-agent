@@ -1,6 +1,7 @@
 import streamlit as st
 import os
 from azure.identity import DefaultAzureCredential
+from azure.core.credentials import AzureKeyCredential
 from azure.ai.projects import AIProjectClient
 
 # 1. Page Configuration & Custom Theme Styling
@@ -12,18 +13,12 @@ st.set_page_config(
 )
 
 # 2. Setup Secure Azure Credentials
-# To avoid hardcoding credentials, we read them from environment variables.
-# When deploying to streamlit.app, configure these in the "Secrets" settings!
 AZURE_ENDPOINT = os.getenv("AZURE_ENDPOINT", "https://csc300-cv.services.ai.azure.com/api/projects/CVAssistant")
 AZURE_AGENT_NAME = os.getenv("AZURE_AGENT_NAME", "AI-Career-Agent")
 AZURE_AGENT_VERSION = os.getenv("AZURE_AGENT_VERSION", "5")
 
-# Optional: Set local environment fallback credentials for local testing
-# DO NOT commit actual keys or passwords to GitHub!
-if "AZURE_TENANT_ID" not in os.environ:
-    # Streamlit Cloud injects secrets directly into environment variables.
-    # If running locally, you can load them from a local .env file.
-    pass
+# Bypasses restricted University tenant permission blocks (401 errors)
+AZURE_API_KEY = os.getenv("AZURE_API_KEY", "")
 
 st.title("💼 Dr. Hanem Ellethy - AI Career Agent")
 st.subheader("Interactive Professional Portfolio & CV Assistant")
@@ -40,10 +35,13 @@ st.markdown(
 @st.cache_resource
 def get_project_client():
     try:
-        # DefaultAzureCredential will automatically pick up:
-        # 1. AZURE_CLIENT_ID, AZURE_CLIENT_SECRET, AZURE_TENANT_ID in Streamlit Secrets
-        # 2. Or managed identity credentials when deployed in Azure
-        credential = DefaultAzureCredential()
+        # If student has restricted university tenant, use direct API Key authentication
+        if AZURE_API_KEY:
+            credential = AzureKeyCredential(AZURE_API_KEY)
+        else:
+            # Default fallback for standard subscriptions
+            credential = DefaultAzureCredential()
+            
         client = AIProjectClient(
             endpoint=AZURE_ENDPOINT,
             credential=credential
@@ -51,7 +49,7 @@ def get_project_client():
         return client
     except Exception as e:
         st.error(f"Failed to authenticate with Azure AI: {e}")
-        st.info("💡 Did you configure your Streamlit Secrets? Check the setup guide below!")
+        st.info("💡 **Student Tip:** If your university tenant blocks App Registration, please use the **Azure API Key** method instead of Microsoft Entra ID!")
         return None
 
 client = get_project_client()
@@ -69,20 +67,16 @@ for message in st.session_state.messages:
 
 # 4. Handle Live User Input & Azure Agent Querying
 if user_input := st.chat_input("Ask me about Dr. Hanem's qualifications..."):
-    # Display user message
     with st.chat_message("user"):
         st.markdown(user_input)
     st.session_state.messages.append({"role": "user", "content": user_input})
 
-    # Query Azure AI Agent
     if client:
         with st.chat_message("assistant"):
             with st.spinner("Consulting Dr. Hanem's CV & Knowledge Base..."):
                 try:
-                    # Get OpenAI client from Azure project
                     openai_client = client.get_openai_client()
                     
-                    # Call the custom agent configured in Azure AI Foundry
                     response = openai_client.responses.create(
                         input=[{"role": "user", "content": user_input}],
                         extra_body={
