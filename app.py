@@ -11,7 +11,6 @@ st.write("Ask me questions about my projects, certifications, or academic backgr
 # 1. Fetch configurations from Environment Variables
 FOUNDRY_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT") # e.g., https://<your-resource>.services.ai.azure.com
 AGENT_ID = os.getenv("AZURE_AGENT_ID")                 # e.g., AI-Career-Agent:5
-thread = await project_client.agents.create_thread()
 if not FOUNDRY_ENDPOINT or not AGENT_ID:
     st.error("Configuration variables missing. Please check your environment variables settings.")
     st.stop()
