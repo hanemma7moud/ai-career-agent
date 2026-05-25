@@ -19,9 +19,16 @@ if not FOUNDRY_ENDPOINT or not AGENT_ID:
 
 # 2. Initialize the Native Project Client using Entra ID 
 @st.cache_resource
+@st.cache_resource
 def get_project_client():
     credential = DefaultAzureCredential()
-    return AIProjectClient(endpoint=FOUNDRY_ENDPOINT, credential=credential)
+
+    return AIProjectClient(
+        subscription_id=os.getenv("AZURE_SUBSCRIPTION_ID"),
+        resource_group_name=os.getenv("AZURE_RESOURCE_GROUP"),
+        project_name=os.getenv("AZURE_PROJECT_NAME"),
+        credential=credential
+    )
 
 project_client = get_project_client()
 
