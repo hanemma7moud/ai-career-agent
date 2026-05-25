@@ -1,69 +1,72 @@
 import os
 import streamlit as st
-from openai import OpenAI
+from azure.identity import DefaultAzureCredential
+from azure.ai.projects import AIProjectClient
 
 st.set_page_config(page_title="AI Career Agent", page_icon="🤖", layout="centered")
 
 st.title("💼 Chat with my AI Career Agent")
 st.write("Ask me questions about my projects, certifications, or academic background.")
 
-# 1. Fetch secure credentials from environment variables
-AZURE_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT")
-AZURE_KEY = os.getenv("AZURE_OPENAI_KEY")
-AGENT_ID = os.getenv("AZURE_AGENT_ID")
+# 1. Fetch configurations from Environment Variables
+FOUNDRY_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT") # e.g., https://<your-resource>.services.ai.azure.com
+AGENT_ID = os.getenv("AZURE_AGENT_ID")                 # e.g., AI-Career-Agent:5
 
-# Ensure keys are present
-if not AZURE_ENDPOINT or not AZURE_KEY or not AGENT_ID:
-    st.error("Deployment configuration missing. Please verify API keys.")
+if not FOUNDRY_ENDPOINT or not AGENT_ID:
+    st.error("Configuration variables missing. Please check your environment variables settings.")
     st.stop()
 
-# 2. Initialize the standard  OpenAI client
-# Append '/openai/v1' to point directly to the Foundry-compatible router
-client = OpenAI(
-    base_url=f"{AZURE_ENDPOINT.rstrip('/')}/openai/v1",
-    api_key=AZURE_KEY
-)
+# 2. Initialize the Native Project Client using Entra ID 
+# Local development uses your 'az login' credentials automatically.
+@st.cache_resource
+def get_project_client():
+    credential = DefaultAzureCredential()
+    return AIProjectClient(endpoint=FOUNDRY_ENDPOINT, credential=credential)
 
-# 3. Maintain session state for the chat thread
+project_client = get_project_client()
+
+# 3. Maintain session state thread ID natively via Foundry
 if "thread_id" not in st.session_state:
-    thread = client.beta.threads.create()
+    thread = project_client.agents.create_thread()
     st.session_state.thread_id = thread.id
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# Display message history
+# Display historical conversation messages
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
 
-# 4. Handle live user input
-if user_query := st.chat_input("Ask something (e.g., What ML tools do you know?)"):
+# 4. Handle live user queries
+if user_query := st.chat_input("Ask something about my machine learning background..."):
     with st.chat_message("user"):
         st.markdown(user_query)
     st.session_state.messages.append({"role": "user", "content": user_query})
 
-    # Send message to the Azure Agent thread
-    client.beta.threads.messages.create(
+    # Append user input message into the live thread context
+    project_client.agents.create_message(
         thread_id=st.session_state.thread_id,
         role="user",
         content=user_query
     )
 
-    # Trigger backend RAG/Inference processing
-    with st.spinner("Agent is thinking..."):
-        run = client.beta.threads.runs.create_and_poll(
+    # Execute backend agent inference processing
+    with st.spinner("Agent is analyzing your request..."):
+        run = project_client.agents.create_and_process(
             thread_id=st.session_state.thread_id,
-            assistant_id=AGENT_ID
+            agent_id=AGENT_ID
         )
 
-    # Stream back result if successful
-    if run.status == 'completed':
-        messages = client.beta.threads.messages.list(thread_id=st.session_state.thread_id)
+    # Retrieve answer token payloads once execution successfully completes
+    if run.status == "completed":
+        messages = project_client.agents.list_messages(thread_id=st.session_state.thread_id)
+        
+        # The latest response from the agent is always delivered as the first item in the list data
         ai_response = messages.data[0].content[0].text.value
         
         with st.chat_message("assistant"):
             st.markdown(ai_response)
         st.session_state.messages.append({"role": "assistant", "content": ai_response})
     else:
-        st.error("Inference execution timed out or failed.")
+        st.error(f"Inference execution failed with status: {run.status}")
