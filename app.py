@@ -79,8 +79,10 @@ if user_input := st.chat_input("Ask me about Dr. Hanem's qualifications..."):
         with st.chat_message("assistant"):
             with st.spinner("Consulting Dr. Hanem's CV & Knowledge Base..."):
                 try:
-                    openai_client = client.get_openai_client()
-                    
+                    if AZURE_API_KEY:
+                        openai_client = client.get_openai_client(api_key=AZURE_API_KEY)
+                    else:
+                        openai_client = client.get_openai_client()
                     response = openai_client.responses.create(
                         input=[{"role": "user", "content": user_input}],
                         extra_body={
@@ -90,14 +92,14 @@ if user_input := st.chat_input("Ask me about Dr. Hanem's qualifications..."):
                                 "type": "agent_reference"
                             }
                         }
-                    )
+                    )  
+        
+
                     
                     output_text = response.output_text
                     st.markdown(output_text)
                     st.session_state.messages.append({"role": "assistant", "content": output_text})
                 except Exception as e:
-                    error_msg = f"Error querying agent: {e}"
-                    st.error(error_msg)
-                    st.session_state.messages.append({"role": "assistant", "content": "Sorry, I encountered an error communicating with the Azure AI model. Please check the credentials."})
+                    st.error(f"Error querying agent: {e}")
     else:
         st.warning("Azure client not initialized. Please configure secrets.")
