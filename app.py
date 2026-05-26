@@ -13,16 +13,12 @@ st.set_page_config(
 )
 
 # 2. Setup Secure Azure Credentials
-AZURE_ENDPOINT = os.getenv("AZURE_ENDPOINT", "https://csc300-cv.services.ai.azure.com/api/projects/CVAssistant")
+AZURE_ENDPOINT = os.getenv("AZURE_ENDPOINT", "https://csc300-cv.services.ai.azure.com/api/projects/CVAssistant" )
 AZURE_AGENT_NAME = os.getenv("AZURE_AGENT_NAME", "AI-Career-Agent")
 AZURE_AGENT_VERSION = os.getenv("AZURE_AGENT_VERSION", "5")
 
-# If the student configured an API key, we override the default Entra ID behavior
-if AZURE_API_KEY:
-    openai_client = client.get_openai_client(api_key=AZURE_API_KEY)
-else:
-    openai_client = client.get_openai_client()
-
+# Safely load the API Key from environment variables (Streamlit Secrets)
+AZURE_API_KEY = os.getenv("AZURE_API_KEY", "")
 
 st.title("💼 Dr. Hanem Ellethy - AI Career Agent")
 st.subheader("Interactive Professional Portfolio & CV Assistant")
@@ -79,10 +75,12 @@ if user_input := st.chat_input("Ask me about Dr. Hanem's qualifications..."):
         with st.chat_message("assistant"):
             with st.spinner("Consulting Dr. Hanem's CV & Knowledge Base..."):
                 try:
+                    # Initialize the sub-client only inside the query handler
                     if AZURE_API_KEY:
                         openai_client = client.get_openai_client(api_key=AZURE_API_KEY)
                     else:
                         openai_client = client.get_openai_client()
+                        
                     response = openai_client.responses.create(
                         input=[{"role": "user", "content": user_input}],
                         extra_body={
@@ -93,8 +91,6 @@ if user_input := st.chat_input("Ask me about Dr. Hanem's qualifications..."):
                             }
                         }
                     )  
-        
-
                     
                     output_text = response.output_text
                     st.markdown(output_text)
