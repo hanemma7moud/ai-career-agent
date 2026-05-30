@@ -29,8 +29,7 @@ You will fork this template project and turn it into your own personalized portf
 2. Click **Fork** (top-right corner) to create a copy in your own GitHub account.
 3. Clone your forked repository to your local computer:
 
-```shell
-git clone [https://github.com/YOUR-USERNAME/ai-career-agent.git](https://github.com/YOUR-USERNAME/ai-career-agent.git)
+git clone https://github.com/YOUR-USERNAME/ai-career-agent.git
 cd ai-career-agent
 
 ---
